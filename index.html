@@ -84,7 +84,7 @@ th,td{padding:8px;border-bottom:1px solid #eee;text-align:center}
     alert("OK");
   };
 
-  window.render = function() {
+ window.render = function() {
     let d = dict[lang];
     document.getElementById('title_text').innerText = d.title;
     document.getElementById('h_stats').innerText = d.stats;
@@ -95,34 +95,43 @@ th,td{padding:8px;border-bottom:1px solid #eee;text-align:center}
     document.getElementById('name').placeholder = d.nameP;
     document.getElementById('phone').placeholder = d.phoneP;
 
-    let listEl = document.getElementById('list'), statsEl = document.getElementById('stats'), taskListEl = document.getElementById('taskList');
+    let listEl = document.getElementById('list');
+    listEl.innerHTML = ''; 
     let deals=0, totalAmount=0, tasks=[], notices=[];
-    
+
+    // 1. 获取筛选器的值
+    const fSales = document.getElementById('filterSales').value;
+    const fStatus = document.getElementById('filterStatus').value;
+
     data.forEach(c => {
-        if(document.getElementById('filterSales').value && c.sales !== document.getElementById('filterSales').value) return;
-        if(document.getElementById('filterStatus').value && c.status !== document.getElementById('filterStatus').value) return;
-        
+        // 2. 强力筛选逻辑：只有当筛选器有具体值，且不匹配时，才跳过
+        if(fSales !== "" && c.sales !== fSales) return;
+        if(fStatus !== "" && c.status !== fStatus) return;
+
         if(c.status === 'D') { 
             deals++; totalAmount += 180000; 
-            notices.push(lang=='zh' ? `${c.sales} 成功签单 1个 金额 180,000 VND` : `${c.sales} Chốt đơn 1 cái 180.000 VND`);
+            notices.push(lang=='zh' ? `${c.sales} 成功签单 1个 金额 180,000 VND` : `${c.sales} Chốt đơn 1 cái 180.000 VND`); 
         }
         if(c.nextTime && c.nextTime <= Date.now()) tasks.push(`${c.sales}: ${c.name} (${c.phone}) - [${c.logistics}]`);
-        
-        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${c.name}</td><td>${c.phone}</td><td>${c.sales}</td><td>${c.status}</td>
-        <td><select onchange="updateLogistics('${c.id}', this.value)">
-            <option value="未发货" ${c.logistics=='未发货'?'selected':''}>${lang=='zh'?'未发货':'Chưa gửi'}</option>
-            <option value="已发货" ${c.logistics=='已发货'?'selected':''}>${lang=='zh'?'已发货':'Đã gửi'}</option>
-            <option value="签收" ${c.logistics=='签收'?'selected':''}>${lang=='zh'?'签收':'Đã nhận'}</option>
-            <option value="拒收" ${c.logistics=='拒收'?'selected':''}>${lang=='zh'?'拒收':'Từ chối'}</option>
-        </select></td>
-        <td><button onclick="alert('${(c.follow||[]).join('\\n')}')">${d.log}</button></td></tr>`;
+
+        listEl.innerHTML += `<tr>
+            <td><input type="checkbox" class="ck" data-id="${c.id}"></td>
+            <td>${c.name}</td><td>${c.phone}</td><td>${c.sales}</td><td>${c.status}</td>
+            <td><select onchange="updateLogistics('${c.id}', this.value)">
+                <option value="未发货" ${c.logistics=='未发货'?'selected':''}>${lang=='zh'?'未发货':'Chưa gửi'}</option>
+                <option value="已发货" ${c.logistics=='已发货'?'selected':''}>${lang=='zh'?'已发货':'Đã gửi'}</option>
+                <option value="签收" ${c.logistics=='签收'?'selected':''}>${lang=='zh'?'签收':'Đã nhận'}</option>
+                <option value="拒收" ${c.logistics=='拒收'?'selected':''}>${lang=='zh'?'拒收':'Từ chối'}</option>
+            </select></td>
+            <td><button onclick="alert('${(c.follow||[]).join('\\n')}')">${d.log}</button></td>
+        </tr>`;
     });
-    
-    statsEl.innerHTML = `<div class="stat">${lang=='zh'?'成交':'Chốt đơn'}：${deals}</div><div class="stat">VND：${totalAmount.toLocaleString()}</div>`;
-    taskListEl.innerHTML = tasks.join('<br>') || (lang=='zh'?'暂无':'Không có');
+
+    document.getElementById('stats').innerHTML = `<div class="stat">${lang=='zh'?'成交':'Chốt đơn'}：${deals}</div><div class="stat">VND：${totalAmount.toLocaleString()}</div>`;
+    document.getElementById('taskList').innerHTML = tasks.join('<br>') || (lang=='zh'?'暂无':'Không có');
     document.getElementById('noticeList').style.display = notices.length > 0 ? 'block' : 'none';
     document.getElementById('noticeList').innerHTML = notices.slice(-3).join('<br>');
-  }
+};
 
   window.updateLogistics = async (id, val) => await updateDoc(doc(db, "customers", id), { logistics: val });
   window.toggleLang = () => { lang = lang === 'zh' ? 'vi' : 'zh'; render(); };
