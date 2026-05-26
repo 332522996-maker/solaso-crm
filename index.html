@@ -73,7 +73,7 @@
   };
 
   window.showAuditReport = () => {
-      let audit = data.filter(c => c.isDeleted).map(c => `${c.name} (${c.phone}) - ${c.deletedAt}`).join('\n');
+      let audit = data.filter(c => c.isDeleted).map(c => `${c.name || '无名'} (${c.phone || '无号'}) - ${c.deletedAt}`).join('\n');
       alert(audit ? "--- 已删除记录审计 ---\n" + audit : "暂无删除记录");
   };
 
@@ -84,13 +84,13 @@
       await updateDoc(doc(db, 'customers', id), { follow: [...(c.follow || []), `${new Date().toLocaleString()}：${note}`] });
   };
 
-  window.showHistory = (id) => { alert(data.find(x => x.id === id).follow.join('\n')); };
+  window.showHistory = (id) => { alert((data.find(x => x.id === id).follow || []).join('\n')); };
 
   window.showMonthlyStats = () => {
       let input = prompt("请输入月份 (格式: 2026-05)", "2026-05");
       if (!input) return;
       let [year, month] = input.split('-').map(Number);
-      let filtered = data.filter(c => !c.isDeleted && c.status === 'D' && new Date(c.createdAt).getFullYear() === year && (new Date(c.createdAt).getMonth() + 1) === month);
+      let filtered = data.filter(c => !c.isDeleted && (c.status === 'D' || c.isClosed === '是') && new Date(c.createdAt || Date.now()).getFullYear() === year && (new Date(c.createdAt || Date.now()).getMonth() + 1) === month);
       alert(`【${input}】财务报表\n成交单数：${filtered.length}\n总金额：${(filtered.length * 180000).toLocaleString()} VND`);
   };
 
@@ -132,29 +132,33 @@
     listEl.innerHTML = ''; 
 
     data.forEach(c => {
-        if(c.isDeleted || (fSales && c.sales !== fSales) || (fStatus && c.status !== fStatus)) return;
-        let cDate = new Date(c.createdAt);
-        if(c.status === 'D') { 
+        // 兼容性逻辑：读取新旧数据
+        let cName = c.name || "无名";
+        let cPhone = c.phone || "无号";
+        let cSales = c.sales || c.source || "未知";
+        let cStatus = c.status || (c.isClosed === "是" ? "D" : "A");
+        let cLog = c.logistics || "未发货";
+        
+        if(c.isDeleted || (fSales && cSales !== fSales) || (fStatus && cStatus !== fStatus)) return;
+        
+        let cDate = new Date(c.createdAt || Date.now());
+        if(cStatus === 'D') { 
             deals++; totalAmount += 180000;
             if(cDate.toDateString() === todayStr) { todayDeals++; todayAmount += 180000; }
-            let dateLabel = (cDate.getMonth()+1) + '-' + cDate.getDate() + ' ' + cDate.getHours().toString().padStart(2, '0') + ':' + cDate.getMinutes().toString().padStart(2, '0');
-            notices.push(lang=='zh' ? `${c.sales} 签单 180k (${dateLabel})` : `${c.sales} Chốt đơn 180k (${dateLabel})`);
+            let dateLabel = (cDate.getMonth()+1) + '-' + cDate.getDate();
+            notices.push(`${cSales} 签单 (${dateLabel})`);
         }
-        if(c.nextTime > 0 && new Date(c.nextTime).toDateString() === todayStr) tasks.push(`${c.sales}: ${c.name} (${c.phone})`);
-        if(c.logistics === "已发货" && c.shipAt && (Date.now() - c.shipAt > 3 * 24 * 60 * 60 * 1000)) tasks.push(`<span style="color:blue">[提醒签收]</span> ${c.sales}: ${c.name}`);
         
-        let log = c.logistics || "未发货";
-        let options = ["未发货", "已发货", "签收"];
-        let selectHtml = `<select onchange="updateLogistics('${c.id}', this.value, '${log}')">` + options.map(opt => `<option value="${opt}" ${log === opt ? 'selected' : ''}>${(lang=='vi' && {'未发货':'Chưa gửi', '已发货':'Đã gửi', '签收':'Đã nhận'}[opt] ? {'未发货':'Chưa gửi', '已发货':'Đã gửi', '签收':'Đã nhận'}[opt] : opt)}</option>`).join('') + `</select>`;
-
-        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${c.name}</td><td>${c.phone}</td><td>${c.sales}</td><td>${c.status}</td><td>${selectHtml}</td><td><button onclick="addHistory('${c.id}')">+记录</button><button onclick="showHistory('${c.id}')">${d.log}</button></td><td><button onclick="deleteRow('${c.id}','${c.status}')" style="background:#f44336">X</button></td></tr>`;
+        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${cName}</td><td>${cPhone}</td><td>${cSales}</td><td>${cStatus}</td><td>
+            <select onchange="updateLogistics('${c.id}', this.value, '${cLog}')">
+                ${["未发货", "已发货", "签收"].map(opt => `<option value="${opt}" ${cLog === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+            </select></td><td><button onclick="addHistory('${c.id}')">+记录</button><button onclick="showHistory('${c.id}')">${d.log}</button></td><td><button onclick="deleteRow('${c.id}','${cStatus}')" style="background:#f44336">X</button></td></tr>`;
     });
 
-    document.getElementById('h_task').innerText = `${d.task} (${tasks.length})`;
     document.getElementById('taskList').innerHTML = tasks.join('<br>') || (lang=='zh'?'暂无':'Không có');
     document.getElementById('noticeList').style.display = notices.length > 0 ? 'block' : 'none';
     document.getElementById('noticeList').innerHTML = notices.slice(-5).reverse().join('<br>');
-    document.getElementById('stats').innerHTML = `<div class="stat-box bg-today"><div class="stat-val">${todayAmount.toLocaleString()} VND</div><div class="stat-label">${lang=='zh'?'今日成交':'Chốt hôm nay'}: ${todayDeals}</div></div><div class="stat-box bg-total"><div class="stat-val">${totalAmount.toLocaleString()} VND</div><div class="stat-label">${lang=='zh'?'累计成交':'Tổng cộng'}: ${deals}</div></div>`;
+    document.getElementById('stats').innerHTML = `<div class="stat-box bg-today"><div class="stat-val">${todayAmount.toLocaleString()} VND</div><div class="stat-label">今日成交</div></div><div class="stat-box bg-total"><div class="stat-val">${totalAmount.toLocaleString()} VND</div><div class="stat-label">累计成交</div></div>`;
   };
 
   window.toggleLang = () => { lang = lang === 'zh' ? 'vi' : 'zh'; render(); };
