@@ -132,21 +132,12 @@
     listEl.innerHTML = ''; 
 
     data.forEach(c => {
+        if(c.isDeleted || (fSales && c.sales !== fSales) || (fStatus && c.status !== fStatus)) return;
         let cName = c.name || "无名";
         let cPhone = c.phone || "无号";
-        let cSales = c.sales || c.source || "未知";
-        let cStatus = c.status || (c.isClosed === "是" ? "D" : "A");
+        let cSales = c.sales || "未知";
+        let cStatus = c.status || "A";
         let cLog = c.logistics || "未发货";
-        
-        if(c.isDeleted || (fSales && cSales !== fSales) || (fStatus && cStatus !== fStatus)) return;
-        
-        let cDate = new Date(c.createdAt || Date.now());
-        if(cStatus === 'D') { 
-            deals++; totalAmount += 180000;
-            if(cDate.toDateString() === todayStr) { todayDeals++; todayAmount += 180000; }
-            let dateLabel = (cDate.getMonth()+1) + '-' + cDate.getDate();
-            notices.push(`${cSales} 签单 (${dateLabel})`);
-        }
         
         listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${cName}</td><td>${cPhone}</td><td>${cSales}</td><td>${cStatus}</td><td>
             <select onchange="updateLogistics('${c.id}', this.value, '${cLog}')">
@@ -154,10 +145,7 @@
             </select></td><td><button onclick="addHistory('${c.id}')">+记录</button><button onclick="showHistory('${c.id}')">${d.log}</button></td><td><button onclick="deleteRow('${c.id}','${cStatus}')" style="background:#f44336">X</button></td></tr>`;
     });
 
-    document.getElementById('taskList').innerHTML = tasks.join('<br>') || (lang=='zh'?'暂无':'Không có');
-    document.getElementById('noticeList').style.display = notices.length > 0 ? 'block' : 'none';
-    document.getElementById('noticeList').innerHTML = notices.slice(-5).reverse().join('<br>');
-    document.getElementById('stats').innerHTML = `<div class="stat-box bg-today"><div class="stat-val">${todayAmount.toLocaleString()} VND</div><div class="stat-label">今日成交</div></div><div class="stat-box bg-total"><div class="stat-val">${totalAmount.toLocaleString()} VND</div><div class="stat-label">累计成交</div></div>`;
+    document.getElementById('stats').innerHTML = `<div class="stat-box bg-total"><div class="stat-val">${totalAmount.toLocaleString()} VND</div><div class="stat-label">累计成交</div></div>`;
   };
 
   window.toggleLang = () => { lang = lang === 'zh' ? 'vi' : 'zh'; render(); };
