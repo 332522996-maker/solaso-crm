@@ -36,8 +36,8 @@
         <input id="phone" placeholder="电话">
         <select id="sales"><option>文商</option><option>芳青</option><option>琼如</option></select>
         <select id="status"><option value="A">A 不回复</option><option value="B">B 考虑中</option><option value="C">C 报价</option><option value="D">D 成交</option></select>
+        <input id="orderDate" type="datetime-local" title="订单下单时间">
         <input id="followNote" placeholder="首次跟进">
-        <input id="followTime" type="datetime-local">
         <button onclick="addCustomer()" id="btn_submit">提交</button>
     </div>
     <div class="card">
@@ -56,11 +56,11 @@
 
   let data = [], lang = 'zh';
   const dict = {
-      'zh': { title: 'CRM系统', stats: '📊 数据看板', task: '🔥 今日待跟进', add: '新增客户', submit: '提交', head: '<th>选择</th><th>登记时间</th><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流</th><th>记录</th><th>操作</th>', nameP: '姓名', phoneP: '电话', log: '查看' },
-      'vi': { title: 'Hệ thống CRM', stats: '📊 Bảng thống kê', task: '🔥 Follow hôm nay', add: 'Thêm khách hàng', submit: 'Gửi', head: '<th>Chọn</th><th>Thời gian</th><th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Vận chuyển</th><th>Xem</th><th>Xóa</th>', nameP: 'Tên', phoneP: 'SĐT', log: 'Xem' }
+      'zh': { title: 'CRM系统', stats: '📊 数据看板', task: '🔥 今日待跟进', add: '新增客户', submit: '提交', head: '<th>选择</th><th>下单日期</th><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流</th><th>记录</th><th>操作</th>', nameP: '姓名', phoneP: '电话', log: '查看' },
+      'vi': { title: 'Hệ thống CRM', stats: '📊 Bảng thống kê', task: '🔥 Follow hôm nay', add: 'Thêm khách hàng', submit: 'Gửi', head: '<th>Chọn</th><th>Ngày ĐH</th><th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Vận chuyển</th><th>Xem</th><th>Xóa</th>', nameP: 'Tên', phoneP: 'SĐT', log: 'Xem' }
   };
 
-  onSnapshot(query(collection(db, "customers"), orderBy("createdAt", "desc")), (snap) => {
+  onSnapshot(query(collection(db, "customers"), orderBy("orderDate", "desc")), (snap) => {
     data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() }));
     render();
   });
@@ -90,15 +90,13 @@
       let input = prompt("请输入月份 (格式: 2026-05)", "2026-05");
       if (!input) return;
       let [year, month] = input.split('-').map(Number);
-      let filtered = data.filter(c => !c.isDeleted && (c.status === 'D' || c.isClosed === '是') && new Date(c.createdAt || Date.now()).getFullYear() === year && (new Date(c.createdAt || Date.now()).getMonth() + 1) === month);
+      let filtered = data.filter(c => !c.isDeleted && (c.status === 'D') && new Date(c.orderDate || Date.now()).getFullYear() === year && (new Date(c.orderDate || Date.now()).getMonth() + 1) === month);
       alert(`【${input}】财务报表\n成交单数：${filtered.length}\n总金额：${(filtered.length * 180000).toLocaleString()} VND`);
   };
 
   window.updateLogistics = async (id, val, oldVal) => {
       if (oldVal === "签收" && val === "未发货" && prompt("重置物流需密码：") !== "8888") { render(); return alert("密码错误"); }
-      let updateData = { logistics: val };
-      if (val === "已发货") updateData.shipAt = Date.now();
-      await updateDoc(doc(db, 'customers', id), updateData);
+      await updateDoc(doc(db, 'customers', id), { logistics: val });
   };
 
   window.addCustomer = async () => {
@@ -108,7 +106,7 @@
         name: document.getElementById('name').value, phone: phone,
         sales: document.getElementById('sales').value, status: document.getElementById('status').value,
         logistics: "未发货", follow: [`${new Date().toLocaleString()}：${document.getElementById('followNote').value}`],
-        nextTime: new Date(document.getElementById('followTime').value).getTime() || 0, createdAt: Date.now()
+        orderDate: new Date(document.getElementById('orderDate').value).getTime() || Date.now(), createdAt: Date.now()
     });
     alert("OK");
   };
@@ -123,40 +121,23 @@
     document.getElementById('name').placeholder = d.nameP;
     document.getElementById('phone').placeholder = d.phoneP;
 
-    const statusSelect = document.getElementById('status');
-    const labels = (lang == 'zh') ? ['A 不回复', 'B 考虑中', 'C 报价', 'D 成交'] : ['A Không phản hồi', 'B Đang cân nhắc', 'C Báo giá', 'D Chốt đơn'];
-    for(let i=0; i<statusSelect.options.length; i++) statusSelect.options[i].text = labels[i];
-
-    let listEl = document.getElementById('list'), deals=0, totalAmount=0, todayDeals=0, todayAmount=0, tasks=[], notices=[];
+    let listEl = document.getElementById('list'), totalAmount=0, todayAmount=0;
     const fSales = document.getElementById('filterSales').value, fStatus = document.getElementById('filterStatus').value;
     listEl.innerHTML = ''; 
 
     data.forEach(c => {
-        let cName = c.name || "无名";
-        let cPhone = c.phone || "无号";
-        let cSales = c.sales || c.source || "未知";
-        let cStatus = c.status || (c.isClosed === "是" ? "D" : "A");
-        let cLog = c.logistics || "未发货";
-        let cDateObj = new Date(c.createdAt || Date.now());
-        
+        let cName = c.name || "无名", cSales = c.sales || "未知", cStatus = c.status || "A", cLog = c.logistics || "未发货";
+        let cDateObj = new Date(c.orderDate || Date.now());
         if(c.isDeleted || (fSales && cSales !== fSales) || (fStatus && cStatus !== fStatus)) return;
-        
         if(cStatus === 'D') { 
-            deals++; totalAmount += 180000;
-            if(cDateObj.toDateString() === todayStr) { todayDeals++; todayAmount += 180000; }
-            let dateLabel = (cDateObj.getMonth()+1) + '-' + cDateObj.getDate();
-            notices.push(`${cSales} 签单 (${dateLabel})`);
+            totalAmount += 180000;
+            if(cDateObj.toDateString() === todayStr) todayAmount += 180000; 
         }
-        
-        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${cDateObj.toLocaleDateString()}</td><td>${cName}</td><td>${cPhone}</td><td>${cSales}</td><td>${cStatus}</td><td>
+        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${cDateObj.toLocaleDateString()}</td><td>${cName}</td><td>${c.phone}</td><td>${cSales}</td><td>${cStatus}</td><td>
             <select onchange="updateLogistics('${c.id}', this.value, '${cLog}')">
-                ${["未发货", "已发货", "签收"].map(opt => `<option value="${opt}" ${cLog === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                ${["未发货", "已发货", "签收", "已退款"].map(opt => `<option value="${opt}" ${cLog === opt ? 'selected' : ''}>${opt}</option>`).join('')}
             </select></td><td><button onclick="addHistory('${c.id}')">+记录</button><button onclick="showHistory('${c.id}')">${d.log}</button></td><td><button onclick="deleteRow('${c.id}','${cStatus}')" style="background:#f44336">X</button></td></tr>`;
     });
-
-    document.getElementById('taskList').innerHTML = tasks.join('<br>') || (lang=='zh'?'暂无':'Không có');
-    document.getElementById('noticeList').style.display = notices.length > 0 ? 'block' : 'none';
-    document.getElementById('noticeList').innerHTML = notices.slice(-5).reverse().join('<br>');
     document.getElementById('stats').innerHTML = `<div class="stat-box bg-today"><div class="stat-val">${todayAmount.toLocaleString()} VND</div><div class="stat-label">今日成交</div></div><div class="stat-box bg-total"><div class="stat-val">${totalAmount.toLocaleString()} VND</div><div class="stat-label">累计成交</div></div>`;
   };
 
