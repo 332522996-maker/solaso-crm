@@ -36,7 +36,7 @@
         <input id="phone" placeholder="电话">
         <select id="sales"><option>文商</option><option>芳青</option><option>琼如</option></select>
         <select id="status"><option value="A">A 不回复</option><option value="B">B 考虑中</option><option value="C">C 报价</option><option value="D">D 成交</option></select>
-        <input id="orderDate" type="datetime-local" title="订单下单时间">
+        <input id="orderDate" type="datetime-local" title="下单日期">
         <input id="followNote" placeholder="首次跟进">
         <button onclick="addCustomer()" id="btn_submit">提交</button>
     </div>
@@ -56,7 +56,7 @@
 
   let data = [], lang = 'zh';
   const dict = {
-      'zh': { title: 'CRM系统', stats: '📊 数据看板', task: '🔥 今日待跟进', add: '新增客户', submit: '提交', head: '<th>选择</th><th>下单日期</th><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流</th><th>记录</th><th>操作</th>', nameP: '姓名', phoneP: '电话', log: '查看' },
+      'zh': { title: 'CRM系统', stats: '📊 数据看板', task: '🔥 今日待跟进', add: '新增客户', submit: '提交', head: '<th>选择</th><th>登记时间</th><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流</th><th>记录</th><th>操作</th>', nameP: '姓名', phoneP: '电话', log: '查看' },
       'vi': { title: 'Hệ thống CRM', stats: '📊 Bảng thống kê', task: '🔥 Follow hôm nay', add: 'Thêm khách hàng', submit: 'Gửi', head: '<th>Chọn</th><th>Ngày ĐH</th><th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Vận chuyển</th><th>Xem</th><th>Xóa</th>', nameP: 'Tên', phoneP: 'SĐT', log: 'Xem' }
   };
 
@@ -126,14 +126,14 @@
     listEl.innerHTML = ''; 
 
     data.forEach(c => {
-        let cName = c.name || "无名", cSales = c.sales || "未知", cStatus = c.status || "A", cLog = c.logistics || "未发货";
+        let cName = c.name || "无名", cPhone = c.phone || "无号", cSales = c.sales || "未知", cStatus = c.status || "A", cLog = c.logistics || "未发货";
         let cDateObj = new Date(c.orderDate || Date.now());
         if(c.isDeleted || (fSales && cSales !== fSales) || (fStatus && cStatus !== fStatus)) return;
         if(cStatus === 'D') { 
             totalAmount += 180000;
             if(cDateObj.toDateString() === todayStr) todayAmount += 180000; 
         }
-        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${cDateObj.toLocaleDateString()}</td><td>${cName}</td><td>${c.phone}</td><td>${cSales}</td><td>${cStatus}</td><td>
+        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${cDateObj.toLocaleDateString()}</td><td>${cName}</td><td>${cPhone}</td><td>${cSales}</td><td>${cStatus}</td><td>
             <select onchange="updateLogistics('${c.id}', this.value, '${cLog}')">
                 ${["未发货", "已发货", "签收", "已退款"].map(opt => `<option value="${opt}" ${cLog === opt ? 'selected' : ''}>${opt}</option>`).join('')}
             </select></td><td><button onclick="addHistory('${c.id}')">+记录</button><button onclick="showHistory('${c.id}')">${d.log}</button></td><td><button onclick="deleteRow('${c.id}','${cStatus}')" style="background:#f44336">X</button></td></tr>`;
