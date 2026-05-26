@@ -143,7 +143,10 @@
         let cDate = new Date(c.createdAt || Date.now());
         if(cStatus === 'D') { 
             deals++; totalAmount += 180000;
-            if(cDate.toDateString() === todayStr) { todayDeals++; todayAmount += 180000; }
+            // 恢复精准判定：仅自然日匹配才计入今日，补录单不影响今日看板
+            if(cDate.toDateString() === todayStr) { 
+                todayDeals++; todayAmount += 180000; 
+            }
             let dateLabel = (cDate.getMonth()+1) + '-' + cDate.getDate();
             notices.push(`${cSales} 签单 (${dateLabel})`);
         }
