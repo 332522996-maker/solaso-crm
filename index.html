@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -49,7 +50,7 @@
     <input id="name" placeholder="姓名"><input id="phone" placeholder="电话">
     <select id="sales"></select>
     <select id="status"></select>
-    <input id="followNote" placeholder="首次跟进"><input id="dealTime" type="datetime-local" title="成交时间">
+    <input id="followNote" placeholder="首次跟进"><input id="dealTime" type="datetime-local">
     <button onclick="addCustomer()" style="background:#5d7590" id="btn_submit">提交</button>
 </div>
 
@@ -75,32 +76,19 @@
       'vi': { head: '<th>Chọn</th><th>Thời gian</th><th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Ngày chốt</th><th>Vận chuyển</th><th>Xem</th><th>Sửa</th><th>Xóa</th>', log: 'Ghi', show: 'Xem', edit: 'Sửa', editTitle: 'Chỉnh sửa khách hàng', salesLabel: 'NV：', dealLabel: 'Ngày chốt：', btnSave: 'Lưu', btnCancel: 'Hủy', rank: '🏆 Bảng xếp hạng', add: 'Thêm khách', dataCenter: 'Dữ liệu khách hàng', btnSubmit: 'Gửi', btnDel: 'Xóa đã chọn', btnAudit: 'Xem đơn đã xóa', stat1: 'Tổng chốt', stat2: 'Tổng hoàn', stat3: 'Doanh thu thực', rankDeal: 'Đơn chốt', rankRef: 'Đơn hoàn', rankNet: 'Lợi nhuận', sales: ['Văn Thương', 'Phương Thanh', 'Quỳnh Như'], status: ['A Không phản hồi', 'B Đang cân nhắc', 'C Báo giá', 'D Chốt đơn'], logistics: ['Chưa gửi', 'Đã gửi', 'Đã nhận', 'Đã hoàn tiền'] }
   };
 
-  const fillSel = (id, opts, filter=false) => { let s=document.getElementById(id); let val=s.value; s.innerHTML=filter ? `<option value="">${lang=='zh'?'全部':'Tất cả'}</option>` : ''; opts.forEach((o,i)=>{s.innerHTML+=`<option value="${filter?o:i==0?'A':i==1?'B':i==2?'C':'D'}">${o}</option>`}); s.value=val; };
-
+  // 修复：option 的 value 和 text 保持一致，不再使用下标
+  const fillSel = (id, opts, filter=false) => { let s=document.getElementById(id); let val=s.value; s.innerHTML=filter ? `<option value="">${lang=='zh'?'全部':'Tất cả'}</option>` : ''; opts.forEach(o=>{s.innerHTML+=`<option value="${o}">${o}</option>`}); s.value=val; };
+  
   window.toggleLang = () => { lang = lang === 'zh' ? 'vi' : 'zh'; render(); };
   onSnapshot(query(collection(db, "customers"), orderBy("createdAt", "desc")), (snap) => { data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() })); render(); });
 
-  window.render = function() {
-    let d = dict[lang], listEl = document.getElementById('list'), tA=0, rA=0, ranking={}; listEl.innerHTML = '';
-    document.getElementById('table_head').innerHTML = d.head;
-    document.getElementById('txt_edit').innerText = d.editTitle; document.getElementById('txt_target_sales').innerText = d.salesLabel; document.getElementById('txt_deal_time').innerText = d.dealLabel; document.getElementById('btn_save').innerText = d.btnSave; document.getElementById('btn_cancel').innerText = d.btnCancel; document.getElementById('h_rank').innerText = d.rank; document.getElementById('h_add').innerText = d.add; document.getElementById('h_data_center').innerText = d.dataCenter; document.getElementById('btn_submit').innerText = d.btnSubmit; document.getElementById('btn_del').innerText = d.btnDel; document.getElementById('btn_audit').innerText = d.btnAudit; document.getElementById('stat_total').innerText = d.stat1; document.getElementById('stat_refund').innerText = d.stat2; document.getElementById('stat_net').innerText = d.stat3;
-    fillSel('sales', d.sales); fillSel('status', d.status); fillSel('editSales', d.sales); fillSel('filterSales', d.sales, true); fillSel('filterStatus', d.status.map(s=>s.split(' ')[0]), true);
-
-    let latestDeal = data.filter(c => c.status === 'D' && !c.isDeleted).sort((a,b) => b.createdAt - a.createdAt)[0];
-    if (latestDeal) document.getElementById('newsTicker').innerText = `${new Date(latestDeal.createdAt).toLocaleDateString()} | ${latestDeal.sales || '无名'} | ${latestDeal.name || '无名'} | 180,000 VND`;
-
-    data.forEach(c => {
-        if(c.isDeleted) return;
-        let cSales = c.sales || "无名";
-        if(c.status==='D') { tA+=180000; if(c.logistics==='已退款') rA+=180000; if(!ranking[cSales]) ranking[cSales]={name: cSales, deal:0, amt:0, ref:0, refAmt:0}; ranking[cSales].deal++; ranking[cSales].amt+=180000; if(c.logistics==='已退款'){ranking[cSales].ref++; ranking[cSales].refAmt+=180000;} }
-        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${new Date(c.createdAt).toLocaleDateString()}</td><td>${c.name||'无名'}</td><td>${c.phone||'无'}</td><td>${cSales}</td><td>${c.status}</td><td>${(c.dealTime||'-').replace('T',' ')}</td><td><select onchange="updateLogistics('${c.id}', this.value)">${d.logistics.map(o=>`<option value="${o}" ${c.logistics===o?'selected':''}>${o}</option>`).join('')}</select></td><td><button onclick="addHistory('${c.id}')" style="background:#5d7590">${d.log}</button><button onclick="showHistory('${c.id}')" style="background:#5d7590">${d.show}</button></td><td><button onclick="editCustomer('${c.id}')" style="background:#4CAF50">${d.edit}</button></td><td><button onclick="deleteRow('${c.id}','${c.status}')" style="background:#e91e63">X</button></td></tr>`;
-    });
-    document.getElementById('total_val').innerText = tA.toLocaleString() + ' VND'; document.getElementById('refund_val').innerText = rA.toLocaleString() + ' VND'; document.getElementById('net_val').innerText = (tA - rA).toLocaleString() + ' VND';
-    document.getElementById('rankList').innerHTML = Object.values(ranking).sort((a,b)=>(b.amt-b.refAmt)-(a.amt-a.refAmt)).map((r,i) => `<div class="card" style="flex:1; margin:0"><strong>No.${i+1} ${r.name}</strong><br>${d.rankDeal}: ${r.deal}<br>${d.rankRef}: ${r.ref}<br><strong>${d.rankNet}: ${(r.amt-r.refAmt).toLocaleString()} VND</strong></div>`).join('');
-  };
-
   window.editCustomer = (id) => { currentEditId = id; const c = data.find(x => x.id === id); document.getElementById('editSales').value = c.sales; document.getElementById('editDealTime').value = c.dealTime || ""; document.getElementById('editDialog').showModal(); };
-  window.saveEdit = async () => { await updateDoc(doc(db, 'customers', currentEditId), { dealTime: document.getElementById('editDealTime').value, sales: document.getElementById('editSales').value }); document.getElementById('editDialog').close(); };
+  window.saveEdit = async () => { 
+      const newSales = document.getElementById('editSales').value;
+      if (['A','B','C','D'].some(s => newSales.startsWith(s))) { alert("错误：请选择正确的销售人员！"); return; }
+      await updateDoc(doc(db, 'customers', currentEditId), { dealTime: document.getElementById('editDealTime').value, sales: newSales }); 
+      document.getElementById('editDialog').close(); render();
+  };
   window.deleteRow = async (id, status) => { if(status==='D' && prompt("密码：")!=='8888') return; await updateDoc(doc(db, 'customers', id), { isDeleted: true }); render(); };
   window.addCustomer = async () => { await addDoc(collection(db, "customers"), { name: document.getElementById('name').value, phone: document.getElementById('phone').value, sales: document.getElementById('sales').value, status: document.getElementById('status').value, logistics: "未发货", follow: [`${new Date().toLocaleString()}：${document.getElementById('followNote').value}`], dealTime: document.getElementById('dealTime').value, createdAt: Date.now() }); alert("OK"); };
   window.updateLogistics = async (id, val) => { await updateDoc(doc(db, 'customers', id), { logistics: val }); render(); };
@@ -108,6 +96,25 @@
   window.addHistory = async (id) => { let n = prompt("内容："); if(n) await updateDoc(doc(db, 'customers', id), { follow: [...(data.find(x=>x.id===id).follow||[]), n] }); };
   window.showHistory = (id) => { alert((data.find(x=>x.id===id).follow||[]).join('\n')); };
   window.showAuditReport = () => { alert(data.filter(c => c.isDeleted).map(c => `${c.name||'无名'}`).join('\n') || "暂无"); };
+
+  window.render = function() {
+    let d = dict[lang], listEl = document.getElementById('list'), tA=0, rA=0, ranking={}; listEl.innerHTML = '';
+    document.getElementById('table_head').innerHTML = d.head;
+    document.getElementById('txt_edit').innerText = d.editTitle; document.getElementById('txt_target_sales').innerText = d.salesLabel; document.getElementById('txt_deal_time').innerText = d.dealLabel; document.getElementById('btn_save').innerText = d.btnSave; document.getElementById('btn_cancel').innerText = d.btnCancel; document.getElementById('h_rank').innerText = d.rank; document.getElementById('h_add').innerText = d.add; document.getElementById('h_data_center').innerText = d.dataCenter; document.getElementById('btn_submit').innerText = d.btnSubmit; document.getElementById('btn_del').innerText = d.btnDel; document.getElementById('btn_audit').innerText = d.btnAudit; document.getElementById('stat_total').innerText = d.stat1; document.getElementById('stat_refund').innerText = d.stat2; document.getElementById('stat_net').innerText = d.stat3;
+    fillSel('sales', d.sales); fillSel('status', d.status); fillSel('editSales', d.sales); fillSel('filterSales', d.sales, true); fillSel('filterStatus', d.status, true);
+    
+    let latestDeal = data.filter(c => c.status === 'D' && !c.isDeleted).sort((a,b) => b.createdAt - a.createdAt)[0];
+    if (latestDeal) document.getElementById('newsTicker').innerText = `${new Date(latestDeal.createdAt).toLocaleDateString()} | ${latestDeal.sales || '无名'} | ${latestDeal.name || '无名'} | 180,000 VND`;
+
+    data.forEach(c => {
+        if(c.isDeleted) return;
+        let cSales = (c.sales && ['A','B','C','D'].some(s => c.sales.startsWith(s))) ? "无名销售" : (c.sales || "无名销售");
+        if(c.status==='D') { tA+=180000; if(c.logistics==='已退款') rA+=180000; if(!ranking[cSales]) ranking[cSales]={name: cSales, deal:0, amt:0, ref:0, refAmt:0}; ranking[cSales].deal++; ranking[cSales].amt+=180000; if(c.logistics==='已退款'){ranking[cSales].ref++; ranking[cSales].refAmt+=180000;} }
+        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${new Date(c.createdAt).toLocaleDateString()}</td><td>${c.name||'无名'}</td><td>${c.phone||'无'}</td><td>${cSales}</td><td>${c.status}</td><td>${(c.dealTime||'-').replace('T',' ')}</td><td><select onchange="updateLogistics('${c.id}', this.value)">${d.logistics.map(o=>`<option value="${o}" ${c.logistics===o?'selected':''}>${o}</option>`).join('')}</select></td><td><button onclick="addHistory('${c.id}')" style="background:#5d7590">${d.log}</button><button onclick="showHistory('${c.id}')" style="background:#5d7590">${d.show}</button></td><td><button onclick="editCustomer('${c.id}')" style="background:#4CAF50">${d.edit}</button></td><td><button onclick="deleteRow('${c.id}','${c.status}')" style="background:#e91e63">X</button></td></tr>`;
+    });
+    document.getElementById('total_val').innerText = tA.toLocaleString() + ' VND'; document.getElementById('refund_val').innerText = rA.toLocaleString() + ' VND'; document.getElementById('net_val').innerText = (tA - rA).toLocaleString() + ' VND';
+    document.getElementById('rankList').innerHTML = Object.values(ranking).sort((a,b)=>(b.amt-b.refAmt)-(a.amt-a.refAmt)).map((r,i) => `<div class="card" style="flex:1; margin:0"><strong>No.${i+1} ${r.name}</strong><br>${d.rankDeal}: ${r.deal}<br>${d.rankRef}: ${r.ref}<br><strong>${d.rankNet}: ${(r.amt-r.refAmt).toLocaleString()} VND</strong></div>`).join('');
+  };
 </script>
 </body>
 </html>
