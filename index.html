@@ -1,122 +1,286 @@
+
 <!DOCTYPE html>
+
 <html lang="zh">
+
 <head>
+
 <meta charset="UTF-8">
+
 <title>SOLASO CRM Pro - Final Edition</title>
+
 <style>
+
     :root { --primary: #4a6cf7; --total: #43e97b; --refund: #ff9a9e; --net: #4facfe; }
+
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+
     .header { background: #5d7590; color: #fff; padding: 15px 25px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
     .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+
     .card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
     .stat-card { background: #fff; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-top: 5px solid var(--primary); }
+
     .stat-val { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+
     th { background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; position: sticky; top: 0; }
+
     td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+
     button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; margin: 2px; }
+
     input, select { padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
+
 </style>
+
 </head>
+
 <body>
 
+
+
 <dialog id="editDialog" style="border-radius:10px; border:none; padding:20px; box-shadow:0 0 10px rgba(0,0,0,0.2);">
+
     <h3 id="txt_edit">编辑客户信息</h3>
+
     <label id="txt_target_sales">目标销售：</label><br>
+
     <select id="editSales"></select><br><br>
+
     <label id="txt_deal_time">成交时间：</label><br>
+
     <input id="editDealTime" type="datetime-local"><br><br>
+
     <button onclick="saveEdit()" style="background:#4CAF50" id="btn_save">保存修改</button>
+
     <button onclick="document.getElementById('editDialog').close()" style="background:#999" id="btn_cancel">取消</button>
+
 </dialog>
 
+
+
 <div class="header">
+
     <div style="font-size: 20px; font-weight: bold; min-width: 250px;">SOLASO CRM Pro</div>
+
     <div style="flex:1; margin:0 20px; overflow:hidden; white-space:nowrap;"><marquee id="newsTicker" scrollamount="4" style="font-size: 15px; color: #ffd700; font-weight: bold;">欢迎使用 SOLASO CRM 系统</marquee></div>
+
     <button onclick="toggleLang()" style="background:#4a6cf7">中/VN</button>
+
 </div>
 
+
+
 <div class="dashboard">
+
     <div class="stat-card" style="border-top-color: var(--total)"><div class="stat-val" id="total_val">0 VND</div><div id="stat_total">累计成交</div></div>
+
     <div class="stat-card" style="border-top-color: var(--refund)"><div class="stat-val" id="refund_val">0 VND</div><div id="stat_refund">累计退款</div></div>
+
     <div class="stat-card" style="border-top-color: var(--net)"><div class="stat-val" id="net_val">0 VND</div><div id="stat_net">实际净营收</div></div>
+
 </div>
+
+
 
 <div class="card"><h3 id="h_rank">🏆 销售排行榜</h3><div id="rankList" style="display:flex; gap:15px; flex-wrap:wrap;"></div></div>
 
-<div class="card">
-    <h3 id="h_add">新增客户</h3>
-    <input id="name" placeholder="姓名"><input id="phone" placeholder="电话">
-    <select id="sales"></select>
-    <select id="status"></select>
-    <input id="followNote" placeholder="首次跟进"><input id="dealTime" type="datetime-local">
-    <button onclick="addCustomer()" style="background:#5d7590" id="btn_submit">提交</button>
-</div>
+
 
 <div class="card">
-    <h3 id="h_data_center">客户数据中心</h3>
-    <select id="filterSales" onchange="render()"></select>
-    <select id="filterStatus" onchange="render()"></select>
-    <button onclick="deleteSelected()" style="background:#e91e63" id="btn_del">删除选中</button>
-    <button onclick="showAuditReport()" style="background:#e91e63" id="btn_audit">查看已删除订单</button>
-    <div style="overflow-y: auto; max-height: 500px;">
-        <table><thead><tr id="table_head"></tr></thead><tbody id="list"></tbody></table>
-    </div>
+
+    <h3 id="h_add">新增客户</h3>
+
+    <input id="name" placeholder="姓名"><input id="phone" placeholder="电话">
+
+    <select id="sales"></select>
+
+    <select id="status"></select>
+
+    <input id="followNote" placeholder="首次跟进"><input id="dealTime" type="datetime-local">
+
+    <button onclick="addCustomer()" style="background:#5d7590" id="btn_submit">提交</button>
+
 </div>
+
+
+
+<div class="card">
+
+    <h3 id="h_data_center">客户数据中心</h3>
+
+    <select id="filterSales" onchange="render()"></select>
+
+    <select id="filterStatus" onchange="render()"></select>
+
+    <button onclick="deleteSelected()" style="background:#e91e63" id="btn_del">删除选中</button>
+
+    <button onclick="showAuditReport()" style="background:#e91e63" id="btn_audit">查看已删除订单</button>
+
+    <div style="overflow-y: auto; max-height: 500px;">
+
+        <table><thead><tr id="table_head"></tr></thead><tbody id="list"></tbody></table>
+
+    </div>
+
+</div>
+
+
 
 <script type="module">
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
   import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
   const db = getFirestore(initializeApp({ apiKey: "AIzaSyB49NgfhodfJjVwS7Ywr_AQxOycV9znrXc", projectId: "solaso-crm" }));
 
+
+
   let data = [], lang = 'zh', currentEditId = null;
+
   const dict = {
+
       'zh': { head: '<th>选</th><th>时间</th><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>成交时间</th><th>物流</th><th>记录</th><th>编辑</th><th>操作</th>', log: '记录', show: '查看', edit: '编辑', editTitle: '编辑客户信息', salesLabel: '目标销售：', dealLabel: '成交时间：', btnSave: '保存修改', btnCancel: '取消', rank: '🏆 销售排行榜', add: '新增客户', dataCenter: '客户数据中心', btnSubmit: '提交', btnDel: '删除选中', btnAudit: '查看已删除订单', stat1: '累计成交', stat2: '累计退款', stat3: '实际净营收', rankDeal: '成交订单', rankRef: '退单数量', rankNet: '净收益', sales: ['文商', '芳青', '琼如'], status: ['A 不回复', 'B 考虑中', 'C 报价', 'D 成交'], logistics: ['未发货', '已发货', '签收', '已退款'] },
+
       'vi': { head: '<th>Chọn</th><th>Thời gian</th><th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Ngày chốt</th><th>Vận chuyển</th><th>Xem</th><th>Sửa</th><th>Xóa</th>', log: 'Ghi', show: 'Xem', edit: 'Sửa', editTitle: 'Chỉnh sửa khách hàng', salesLabel: 'NV：', dealLabel: 'Ngày chốt：', btnSave: 'Lưu', btnCancel: 'Hủy', rank: '🏆 Bảng xếp hạng', add: 'Thêm khách', dataCenter: 'Dữ liệu khách hàng', btnSubmit: 'Gửi', btnDel: 'Xóa đã chọn', btnAudit: 'Xem đơn đã xóa', stat1: 'Tổng chốt', stat2: 'Tổng hoàn', stat3: 'Doanh thu thực', rankDeal: 'Đơn chốt', rankRef: 'Đơn hoàn', rankNet: 'Lợi nhuận', sales: ['Văn Thương', 'Phương Thanh', 'Quỳnh Như'], status: ['A Không phản hồi', 'B Đang cân nhắc', 'C Báo giá', 'D Chốt đơn'], logistics: ['Chưa gửi', 'Đã gửi', 'Đã nhận', 'Đã hoàn tiền'] }
+
   };
 
-  const fillSel = (id, opts, filter=false) => { let s=document.getElementById(id); let val=s.value; s.innerHTML=filter ? `<option value="">${lang=='zh'?'全部':'Tất cả'}</option>` : ''; opts.forEach(o=>{s.innerHTML+=`<option value="${o}">${o}</option>`}); s.value=val; };
+
+
+  const fillSel = (id, opts, filter=false) => { 
+
+    let s = document.getElementById(id); let val = s.value; 
+
+    s.innerHTML = filter ? `<option value="">${lang=='zh'?'全部':'Tất cả'}</option>` : ''; 
+
+    opts.forEach(o => { s.innerHTML += `<option value="${o.split(' ')[0]}">${o}</option>` }); 
+
+    s.value = val; 
+
+  };
+
+
+
   window.toggleLang = () => { lang = lang === 'zh' ? 'vi' : 'zh'; render(); };
-  onSnapshot(query(collection(db, "customers"), orderBy("createdAt", "desc")), (snap) => { data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() })); render(); });
 
-  window.editCustomer = (id) => { currentEditId = id; const c = data.find(x => x.id === id); document.getElementById('editSales').value = c.sales; document.getElementById('editDealTime').value = c.dealTime || ""; document.getElementById('editDialog').showModal(); };
-  window.saveEdit = async () => { 
-      const newSales = document.getElementById('editSales').value;
-      if (['A','B','C','D'].some(s => newSales.startsWith(s))) { alert("错误：请选择正确的销售人员！"); return; }
-      await updateDoc(doc(db, 'customers', currentEditId), { dealTime: document.getElementById('editDealTime').value, sales: newSales }); 
-      document.getElementById('editDialog').close(); render();
-  };
-  window.deleteRow = async (id, status) => { if(status==='D' && prompt("密码：")!=='8888') return; await updateDoc(doc(db, 'customers', id), { isDeleted: true }); render(); };
-  window.addCustomer = async () => { await addDoc(collection(db, "customers"), { name: document.getElementById('name').value, phone: document.getElementById('phone').value, sales: document.getElementById('sales').value, status: document.getElementById('status').value, logistics: "未发货", follow: [`${new Date().toLocaleString()}：${document.getElementById('followNote').value}`], dealTime: document.getElementById('dealTime').value, createdAt: Date.now() }); alert("OK"); };
-  window.updateLogistics = async (id, val) => { await updateDoc(doc(db, 'customers', id), { logistics: val }); render(); };
-  window.deleteSelected = async () => { for(let el of document.querySelectorAll('.ck:checked')) await deleteRow(el.dataset.id, data.find(c=>c.id==el.dataset.id).status); };
-  window.addHistory = async (id) => { let n = prompt("内容："); if(n) await updateDoc(doc(db, 'customers', id), { follow: [...(data.find(x=>x.id===id).follow||[]), n] }); };
-  window.showHistory = (id) => { alert((data.find(x=>x.id===id).follow||[]).join('\n')); };
-  window.showAuditReport = () => { alert(data.filter(c => c.isDeleted).map(c => `${c.name||'无名'}`).join('\n') || "暂无"); };
+  
+
+  onSnapshot(query(collection(db, "customers"), orderBy("createdAt", "desc")), (snap) => { 
+
+    data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() })); render(); 
+
+  });
+
+
 
   window.render = function() {
-    let d = dict[lang], listEl = document.getElementById('list'), tA=0, rA=0, ranking={}; listEl.innerHTML = '';
-    let fSales = document.getElementById('filterSales').value;
-    let fStatus = document.getElementById('filterStatus').value;
-    document.getElementById('table_head').innerHTML = d.head;
-    document.getElementById('txt_edit').innerText = d.editTitle; document.getElementById('txt_target_sales').innerText = d.salesLabel; document.getElementById('txt_deal_time').innerText = d.dealLabel; document.getElementById('btn_save').innerText = d.btnSave; document.getElementById('btn_cancel').innerText = d.btnCancel; document.getElementById('h_rank').innerText = d.rank; document.getElementById('h_add').innerText = d.add; document.getElementById('h_data_center').innerText = d.dataCenter; document.getElementById('btn_submit').innerText = d.btnSubmit; document.getElementById('btn_del').innerText = d.btnDel; document.getElementById('btn_audit').innerText = d.btnAudit; document.getElementById('stat_total').innerText = d.stat1; document.getElementById('stat_refund').innerText = d.stat2; document.getElementById('stat_net').innerText = d.stat3;
-    fillSel('sales', d.sales); fillSel('status', d.status); fillSel('editSales', d.sales); fillSel('filterSales', d.sales, true); fillSel('filterStatus', d.status, true);
+
+    let d = dict[lang], listEl = document.getElementById('list'), tA=0, tCount=0, rA=0, rCount=0, todayCount=0, ranking={}; 
+
+    let today = new Date().toLocaleDateString();
+
+    listEl.innerHTML = '';
+
     
-    let latestDeal = data.filter(c => c.status === 'D' && !c.isDeleted).sort((a,b) => b.createdAt - a.createdAt)[0];
-    if (latestDeal) document.getElementById('newsTicker').innerText = `${new Date(latestDeal.createdAt).toLocaleDateString()} | ${latestDeal.sales || '无名'} | ${latestDeal.name || '无名'} | 180,000 VND`;
+
+    let fSales = document.getElementById('filterSales').value;
+
+    let fStatus = document.getElementById('filterStatus').value;
+
+    
+
+    document.getElementById('table_head').innerHTML = d.head;
+
+    document.getElementById('txt_edit').innerText = d.editTitle; document.getElementById('txt_target_sales').innerText = d.salesLabel; document.getElementById('txt_deal_time').innerText = d.dealLabel; document.getElementById('btn_save').innerText = d.btnSave; document.getElementById('btn_cancel').innerText = d.btnCancel; document.getElementById('h_rank').innerText = d.rank; document.getElementById('h_add').innerText = d.add; document.getElementById('h_data_center').innerText = d.dataCenter; document.getElementById('btn_submit').innerText = d.btnSubmit; document.getElementById('btn_del').innerText = d.btnDel; document.getElementById('btn_audit').innerText = d.btnAudit; document.getElementById('stat_total').innerText = d.stat1; document.getElementById('stat_refund').innerText = d.stat2; document.getElementById('stat_net').innerText = d.stat3;
+
+    
+
+    fillSel('sales', d.sales); fillSel('status', d.status); fillSel('editSales', d.sales); fillSel('filterSales', d.sales, true); fillSel('filterStatus', d.status, true);
+
+    document.getElementById('filterSales').value = fSales; document.getElementById('filterStatus').value = fStatus;
+
+
 
     data.forEach(c => {
-        if(c.isDeleted) return;
-        if(fSales && c.sales !== fSales) return;
-        if(fStatus && c.status !== fStatus.split(' ')[0]) return;
 
-        let cSales = (c.sales && ['A','B','C','D'].some(s => c.sales.startsWith(s))) ? "无名销售" : (c.sales || "无名销售");
-        if(c.status==='D') { tA+=180000; if(c.logistics==='已退款') rA+=180000; if(!ranking[cSales]) ranking[cSales]={name: cSales, deal:0, amt:0, ref:0, refAmt:0}; ranking[cSales].deal++; ranking[cSales].amt+=180000; if(c.logistics==='已退款'){ranking[cSales].ref++; ranking[cSales].refAmt+=180000;} }
+        if(c.isDeleted) return;
+
+        let cPrefix = c.status ? c.status.split(' ')[0] : '';
+
+        if(fSales && c.sales !== fSales) return;
+
+        if(fStatus && cPrefix !== fStatus) return;
+
+
+
+        let cSales = c.sales || "无名销售";
+
+        if(cPrefix === 'D') { 
+
+            tCount++; tA += 180000; 
+
+            if (c.dealTime && new Date(c.dealTime).toLocaleDateString() === today) {
+    todayCount++;
+}
+
+            let isRefund = (c.logistics.includes('退款') || c.logistics.includes('hoàn'));
+
+            if(isRefund) { rCount++; rA += 180000; }
+
+            if(!ranking[cSales]) ranking[cSales]={name: cSales, deal:0, amt:0, ref:0, refAmt:0};
+
+            ranking[cSales].deal++; ranking[cSales].amt+=180000;
+
+            if(isRefund){ranking[cSales].ref++; ranking[cSales].refAmt+=180000;}
+
+        }
+
         listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${new Date(c.createdAt).toLocaleDateString()}</td><td>${c.name||'无名'}</td><td>${c.phone||'无'}</td><td>${cSales}</td><td>${c.status}</td><td>${(c.dealTime||'-').replace('T',' ')}</td><td><select onchange="updateLogistics('${c.id}', this.value)">${d.logistics.map(o=>`<option value="${o}" ${c.logistics===o?'selected':''}>${o}</option>`).join('')}</select></td><td><button onclick="addHistory('${c.id}')" style="background:#5d7590">${d.log}</button><button onclick="showHistory('${c.id}')" style="background:#5d7590">${d.show}</button></td><td><button onclick="editCustomer('${c.id}')" style="background:#4CAF50">${d.edit}</button></td><td><button onclick="deleteRow('${c.id}','${c.status}')" style="background:#e91e63">X</button></td></tr>`;
+
     });
-    document.getElementById('total_val').innerText = tA.toLocaleString() + ' VND'; document.getElementById('refund_val').innerText = rA.toLocaleString() + ' VND'; document.getElementById('net_val').innerText = (tA - rA).toLocaleString() + ' VND';
+
+    
+
+    document.getElementById('total_val').innerText = `${tA.toLocaleString()} VND (${tCount}单)`; 
+
+    document.getElementById('refund_val').innerText = `${rA.toLocaleString()} (${rCount}单)`; 
+
+    document.getElementById('net_val').innerText = `${(tA - rA).toLocaleString()} VND (${tCount - rCount}单)`;
+
+    document.getElementById('newsTicker').innerText = `📅 ${today} | 今日成交: ${todayCount} 单 | 欢迎使用 SOLASO CRM`;
+
     document.getElementById('rankList').innerHTML = Object.values(ranking).sort((a,b)=>(b.amt-b.refAmt)-(a.amt-a.refAmt)).map((r,i) => `<div class="card" style="flex:1; margin:0"><strong>No.${i+1} ${r.name}</strong><br>${d.rankDeal}: ${r.deal}<br>${d.rankRef}: ${r.ref}<br><strong>${d.rankNet}: ${(r.amt-r.refAmt).toLocaleString()} VND</strong></div>`).join('');
+
   };
+
+
+
+  window.editCustomer = (id) => { currentEditId = id; const c = data.find(x => x.id === id); document.getElementById('editSales').value = c.sales; document.getElementById('editDealTime').value = c.dealTime || ""; document.getElementById('editDialog').showModal(); };
+
+  window.saveEdit = async () => { await updateDoc(doc(db, 'customers', currentEditId), { dealTime: document.getElementById('editDealTime').value, sales: document.getElementById('editSales').value }); document.getElementById('editDialog').close(); render(); };
+
+  window.deleteRow = async (id, status) => { if(status.startsWith('D') && prompt("密码：")!=='8888') return; await updateDoc(doc(db, 'customers', id), { isDeleted: true }); render(); };
+
+  window.addCustomer = async () => { await addDoc(collection(db, "customers"), { name: document.getElementById('name').value, phone: document.getElementById('phone').value, sales: document.getElementById('sales').value, status: document.getElementById('status').value, logistics: "未发货", follow: [`${new Date().toLocaleString()}：录入`], dealTime: "", createdAt: Date.now() }); alert("OK"); };
+
+  window.updateLogistics = async (id, val) => { await updateDoc(doc(db, 'customers', id), { logistics: val }); render(); };
+
+  window.deleteSelected = async () => { for(let el of document.querySelectorAll('.ck:checked')) await window.deleteRow(el.dataset.id, data.find(c=>c.id==el.dataset.id).status); };
+
+  window.addHistory = async (id) => { let n = prompt("内容："); if(n) await updateDoc(doc(db, 'customers', id), { follow: [...(data.find(x=>x.id===id).follow||[]), `${new Date().toLocaleString()}：${n}`] }); };
+
+  window.showHistory = (id) => { alert((data.find(x=>x.id===id).follow||[]).join('\n')); };
+
+  window.showAuditReport = () => { alert(data.filter(c => c.isDeleted).map(c => `${c.name||'无名'}`).join('\n') || "暂无"); };
+
 </script>
+
 </body>
+
 </html>
