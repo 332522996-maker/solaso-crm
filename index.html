@@ -2,29 +2,29 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>CRM系统（云端增强版）</title>
+<title>SOLASO CRM正式版</title>
 <style>
-body{font-family:Arial;background:#f5f6fa;margin:0}
-.header{padding:15px;background:#4a6cf7;color:#fff;font-size:20px;display:flex;justify-content:space-between}
-.container{padding:20px}
-.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px}
-button{padding:6px 12px;background:#4a6cf7;color:#fff;border:none;border-radius:6px;cursor:pointer}
-input,select{padding:6px;margin:5px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #eee;text-align:center}
-.statBox{display:flex;gap:10px}
-.stat{flex:1;background:#f0f4ff;padding:10px;border-radius:8px;text-align:center;font-weight:bold}
-.notice{background:#fff3e0;padding:10px;border-left:5px solid #ff9800;margin-top:10px;font-size:14px;color:#d84315}
+    body{font-family:Arial;background:#f5f6fa;margin:0}
+    .header{padding:15px;background:#4a6cf7;color:#fff;font-size:20px;display:flex;justify-content:space-between}
+    .container{padding:20px}
+    .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px}
+    button{padding:6px 12px;background:#4a6cf7;color:#fff;border:none;border-radius:6px;cursor:pointer}
+    input,select{padding:6px;margin:5px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:10px;border-bottom:1px solid #eee;text-align:center}
+    .stats-container { display: flex; gap: 15px; }
+    .stat-box { flex: 1; padding: 15px; border-radius: 12px; color: #fff; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .bg-today { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .bg-total { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .stat-val { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+    .stat-label { font-size: 14px; opacity: 0.9; }
+    .notice{background:#fff3e0;padding:10px;border-left:5px solid #ff9800;margin-top:10px;font-size:14px;color:#d84315}
 </style>
 </head>
-
 <body>
-<div class="header">
-    <div id="title_text">CRM系统</div>
-    <button onclick="toggleLang()">中/VN</button>
-</div>
+<div class="header"><div id="title_text">CRM系统</div><button onclick="toggleLang()">中/VN</button></div>
 <div class="container">
-    <div class="card"><h3 id="h_stats">📊 数据看板</h3><div id="stats" class="statBox"></div></div>
+    <div class="card"><h3 id="h_stats">📊 数据看板</h3><div id="stats" class="stats-container"></div><button onclick="showMonthlyStats()" style="margin-top:10px;background:#333">查看月度财务</button></div>
     <div class="card">
         <h3 id="h_task">🔥 今日待跟进</h3>
         <div id="taskList"></div>
@@ -34,11 +34,8 @@ th,td{padding:8px;border-bottom:1px solid #eee;text-align:center}
         <h3 id="h_add">新增客户</h3>
         <input id="name" placeholder="姓名">
         <input id="phone" placeholder="电话">
-        <select id="source"><option>FACEBOOK</option><option>TIKTOK</option><option>转介绍</option></select>
         <select id="sales"><option>文商</option><option>芳青</option><option>琼如</option></select>
-        <select id="status">
-            <option value="A">A 不回复</option><option value="B">B 考虑中</option><option value="C">C 报价</option><option value="D">D 成交</option>
-        </select>
+        <select id="status"><option value="A">A 不回复</option><option value="B">B 考虑中</option><option value="C">C 报价</option><option value="D">D 成交</option></select>
         <input id="followNote" placeholder="首次跟进">
         <input id="followTime" type="datetime-local">
         <button onclick="addCustomer()" id="btn_submit">提交</button>
@@ -46,22 +43,21 @@ th,td{padding:8px;border-bottom:1px solid #eee;text-align:center}
     <div class="card">
         <select id="filterSales" onchange="render()"><option value="">全部销售</option><option>文商</option><option>芳青</option><option>琼如</option></select>
         <select id="filterStatus" onchange="render()"><option value="">全部状态</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
-        <label><input type="checkbox" onclick="toggleAll(this)">全选</label>
-        <button onclick="deleteSelected()">删除</button>
-        <table><thead><tr id="table_head"><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流(VN)</th><th>操作</th></tr></thead><tbody id="list"></tbody></table>
+        <button onclick="deleteSelected()">删除选中</button>
+        <button onclick="showAuditReport()" style="background:#e91e63">查看已删除订单</button>
+        <table><thead><tr id="table_head"></tr></thead><tbody id="list"></tbody></table>
     </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   const db = getFirestore(initializeApp({ apiKey: "AIzaSyB49NgfhodfJjVwS7Ywr_AQxOycV9znrXc", projectId: "solaso-crm" }));
 
   let data = [], lang = 'zh';
   const dict = {
-      'zh': { title: 'CRM系统', stats: '📊 数据看板', task: '🔥 今日待跟进', add: '新增客户', submit: '提交', head: '<th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流(VN)</th><th>操作</th>', nameP: '姓名', phoneP: '电话', log: '记录' },
-      'vi': { title: 'Hệ thống CRM', stats: '📊 Bảng thống kê', task: '🔥 Follow hôm nay', add: 'Thêm khách hàng', submit: 'Gửi', head: '<th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Vận chuyển</th><th>Thao tác</th>', nameP: 'Tên', phoneP: 'SĐT', log: 'Log' }
+      'zh': { title: 'CRM系统', stats: '📊 数据看板', task: '🔥 今日待跟进', add: '新增客户', submit: '提交', head: '<th>选择</th><th>姓名</th><th>电话</th><th>销售</th><th>状态</th><th>物流</th><th>记录</th><th>操作</th>', nameP: '姓名', phoneP: '电话', log: '查看' },
+      'vi': { title: 'Hệ thống CRM', stats: '📊 Bảng thống kê', task: '🔥 Follow hôm nay', add: 'Thêm khách hàng', submit: 'Gửi', head: '<th>Chọn</th><th>Tên</th><th>SĐT</th><th>NV</th><th>Trạng thái</th><th>Vận chuyển</th><th>Xem</th><th>Xóa</th>', nameP: 'Tên', phoneP: 'SĐT', log: 'Xem' }
   };
 
   onSnapshot(query(collection(db, "customers"), orderBy("createdAt", "desc")), (snap) => {
@@ -69,74 +65,100 @@ th,td{padding:8px;border-bottom:1px solid #eee;text-align:center}
     render();
   });
 
+  window.deleteRow = async (id, status) => {
+      if (status === 'D') { if (prompt("该客户已成交，需管理员密码：") !== "8888") return alert("密码错误"); } 
+      else if (!confirm("确定删除吗？")) return;
+      await updateDoc(doc(db, 'customers', id), { isDeleted: true, deletedAt: new Date().toLocaleString() });
+      render();
+  };
+
+  window.showAuditReport = () => {
+      let audit = data.filter(c => c.isDeleted).map(c => `${c.name} (${c.phone}) - ${c.deletedAt}`).join('\n');
+      alert(audit ? "--- 已删除记录审计 ---\n" + audit : "暂无删除记录");
+  };
+
+  window.addHistory = async (id) => {
+      let note = prompt("请输入跟进内容：");
+      if (!note) return;
+      let c = data.find(x => x.id === id);
+      await updateDoc(doc(db, 'customers', id), { follow: [...(c.follow || []), `${new Date().toLocaleString()}：${note}`] });
+  };
+
+  window.showHistory = (id) => { alert(data.find(x => x.id === id).follow.join('\n')); };
+
+  window.showMonthlyStats = () => {
+      let input = prompt("请输入月份 (格式: 2026-05)", "2026-05");
+      if (!input) return;
+      let [year, month] = input.split('-').map(Number);
+      let filtered = data.filter(c => !c.isDeleted && c.status === 'D' && new Date(c.createdAt).getFullYear() === year && (new Date(c.createdAt).getMonth() + 1) === month);
+      alert(`【${input}】财务报表\n成交单数：${filtered.length}\n总金额：${(filtered.length * 180000).toLocaleString()} VND`);
+  };
+
+  window.updateLogistics = async (id, val, oldVal) => {
+      if (oldVal === "签收" && val === "未发货" && prompt("重置物流需密码：") !== "8888") { render(); return alert("密码错误"); }
+      let updateData = { logistics: val };
+      if (val === "已发货") updateData.shipAt = Date.now();
+      await updateDoc(doc(db, 'customers', id), updateData);
+  };
+
   window.addCustomer = async () => {
-    let name = document.getElementById('name').value.trim();
-    if(!name) return;
+    let phone = document.getElementById('phone').value;
+    if (data.find(c => c.phone === phone)) return alert("警告：该号码已存在！");
     await addDoc(collection(db, "customers"), {
-        name, phone: document.getElementById('phone').value,
-        sales: document.getElementById('sales').value,
-        status: document.getElementById('status').value,
-        logistics: document.getElementById('status').value === 'D' ? "未发货" : "无",
-        follow: [`${new Date().toLocaleString()}：${document.getElementById('followNote').value}`],
-        nextTime: new Date(document.getElementById('followTime').value).getTime() || 0,
-        createdAt: Date.now()
+        name: document.getElementById('name').value, phone: phone,
+        sales: document.getElementById('sales').value, status: document.getElementById('status').value,
+        logistics: "未发货", follow: [`${new Date().toLocaleString()}：${document.getElementById('followNote').value}`],
+        nextTime: new Date(document.getElementById('followTime').value).getTime() || 0, createdAt: Date.now()
     });
     alert("OK");
   };
 
- window.render = function() {
-    let d = dict[lang];
+  window.render = function() {
+    let d = dict[lang], today = new Date(), todayStr = today.toDateString();
     document.getElementById('title_text').innerText = d.title;
     document.getElementById('h_stats').innerText = d.stats;
-    document.getElementById('h_task').innerText = d.task;
     document.getElementById('h_add').innerText = d.add;
     document.getElementById('btn_submit').innerText = d.submit;
     document.getElementById('table_head').innerHTML = d.head;
     document.getElementById('name').placeholder = d.nameP;
     document.getElementById('phone').placeholder = d.phoneP;
 
-    let listEl = document.getElementById('list');
-    listEl.innerHTML = ''; 
-    let deals=0, totalAmount=0, tasks=[], notices=[];
+    const statusSelect = document.getElementById('status');
+    const labels = (lang == 'zh') ? ['A 不回复', 'B 考虑中', 'C 报价', 'D 成交'] : ['A Không phản hồi', 'B Đang cân nhắc', 'C Báo giá', 'D Chốt đơn'];
+    for(let i=0; i<statusSelect.options.length; i++) statusSelect.options[i].text = labels[i];
 
-    // 1. 获取筛选器的值
-    const fSales = document.getElementById('filterSales').value;
-    const fStatus = document.getElementById('filterStatus').value;
+    let listEl = document.getElementById('list'), deals=0, totalAmount=0, todayDeals=0, todayAmount=0, tasks=[], notices=[];
+    const fSales = document.getElementById('filterSales').value, fStatus = document.getElementById('filterStatus').value;
+    listEl.innerHTML = ''; 
 
     data.forEach(c => {
-        // 2. 强力筛选逻辑：只有当筛选器有具体值，且不匹配时，才跳过
-        if(fSales !== "" && c.sales !== fSales) return;
-        if(fStatus !== "" && c.status !== fStatus) return;
-
+        if(c.isDeleted || (fSales && c.sales !== fSales) || (fStatus && c.status !== fStatus)) return;
+        let cDate = new Date(c.createdAt);
         if(c.status === 'D') { 
-            deals++; totalAmount += 180000; 
-            notices.push(lang=='zh' ? `${c.sales} 成功签单 1个 金额 180,000 VND` : `${c.sales} Chốt đơn 1 cái 180.000 VND`); 
+            deals++; totalAmount += 180000;
+            if(cDate.toDateString() === todayStr) { todayDeals++; todayAmount += 180000; }
+            let dateLabel = (cDate.getMonth()+1) + '-' + cDate.getDate() + ' ' + cDate.getHours().toString().padStart(2, '0') + ':' + cDate.getMinutes().toString().padStart(2, '0');
+            notices.push(lang=='zh' ? `${c.sales} 签单 180k (${dateLabel})` : `${c.sales} Chốt đơn 180k (${dateLabel})`);
         }
-        if(c.nextTime && c.nextTime <= Date.now()) tasks.push(`${c.sales}: ${c.name} (${c.phone}) - [${c.logistics}]`);
+        if(c.nextTime > 0 && new Date(c.nextTime).toDateString() === todayStr) tasks.push(`${c.sales}: ${c.name} (${c.phone})`);
+        if(c.logistics === "已发货" && c.shipAt && (Date.now() - c.shipAt > 3 * 24 * 60 * 60 * 1000)) tasks.push(`<span style="color:blue">[提醒签收]</span> ${c.sales}: ${c.name}`);
+        
+        let log = c.logistics || "未发货";
+        let options = ["未发货", "已发货", "签收"];
+        let selectHtml = `<select onchange="updateLogistics('${c.id}', this.value, '${log}')">` + options.map(opt => `<option value="${opt}" ${log === opt ? 'selected' : ''}>${(lang=='vi' && {'未发货':'Chưa gửi', '已发货':'Đã gửi', '签收':'Đã nhận'}[opt] ? {'未发货':'Chưa gửi', '已发货':'Đã gửi', '签收':'Đã nhận'}[opt] : opt)}</option>`).join('') + `</select>`;
 
-        listEl.innerHTML += `<tr>
-            <td><input type="checkbox" class="ck" data-id="${c.id}"></td>
-            <td>${c.name}</td><td>${c.phone}</td><td>${c.sales}</td><td>${c.status}</td>
-            <td><select onchange="updateLogistics('${c.id}', this.value)">
-                <option value="未发货" ${c.logistics=='未发货'?'selected':''}>${lang=='zh'?'未发货':'Chưa gửi'}</option>
-                <option value="已发货" ${c.logistics=='已发货'?'selected':''}>${lang=='zh'?'已发货':'Đã gửi'}</option>
-                <option value="签收" ${c.logistics=='签收'?'selected':''}>${lang=='zh'?'签收':'Đã nhận'}</option>
-                <option value="拒收" ${c.logistics=='拒收'?'selected':''}>${lang=='zh'?'拒收':'Từ chối'}</option>
-            </select></td>
-            <td><button onclick="alert('${(c.follow||[]).join('\\n')}')">${d.log}</button></td>
-        </tr>`;
+        listEl.innerHTML += `<tr><td><input type="checkbox" class="ck" data-id="${c.id}"></td><td>${c.name}</td><td>${c.phone}</td><td>${c.sales}</td><td>${c.status}</td><td>${selectHtml}</td><td><button onclick="addHistory('${c.id}')">+记录</button><button onclick="showHistory('${c.id}')">${d.log}</button></td><td><button onclick="deleteRow('${c.id}','${c.status}')" style="background:#f44336">X</button></td></tr>`;
     });
 
-    document.getElementById('stats').innerHTML = `<div class="stat">${lang=='zh'?'成交':'Chốt đơn'}：${deals}</div><div class="stat">VND：${totalAmount.toLocaleString()}</div>`;
+    document.getElementById('h_task').innerText = `${d.task} (${tasks.length})`;
     document.getElementById('taskList').innerHTML = tasks.join('<br>') || (lang=='zh'?'暂无':'Không có');
     document.getElementById('noticeList').style.display = notices.length > 0 ? 'block' : 'none';
-    document.getElementById('noticeList').innerHTML = notices.slice(-3).join('<br>');
-};
+    document.getElementById('noticeList').innerHTML = notices.slice(-5).reverse().join('<br>');
+    document.getElementById('stats').innerHTML = `<div class="stat-box bg-today"><div class="stat-val">${todayAmount.toLocaleString()} VND</div><div class="stat-label">${lang=='zh'?'今日成交':'Chốt hôm nay'}: ${todayDeals}</div></div><div class="stat-box bg-total"><div class="stat-val">${totalAmount.toLocaleString()} VND</div><div class="stat-label">${lang=='zh'?'累计成交':'Tổng cộng'}: ${deals}</div></div>`;
+  };
 
-  window.updateLogistics = async (id, val) => await updateDoc(doc(db, "customers", id), { logistics: val });
   window.toggleLang = () => { lang = lang === 'zh' ? 'vi' : 'zh'; render(); };
-  window.toggleAll = (el) => document.querySelectorAll('.ck').forEach(c => c.checked = el.checked);
-  window.deleteSelected = async () => { let ids = [...document.querySelectorAll('.ck:checked')].map(c => c.dataset.id); for(let id of ids) await deleteDoc(doc(db,'customers',id)); };
+  window.deleteSelected = async () => { for(let el of document.querySelectorAll('.ck:checked')) await deleteRow(el.dataset.id, data.find(c=>c.id==el.dataset.id).status); };
 </script>
 </body>
 </html>
